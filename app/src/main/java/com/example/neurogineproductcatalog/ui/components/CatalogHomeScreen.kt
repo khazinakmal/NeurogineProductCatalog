@@ -3,7 +3,7 @@ package com.example.neurogineproductcatalog.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,21 +22,44 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.example.neurogineproductcatalog.data.ApiProduct
 import com.example.neurogineproductcatalog.data.DummyJsonService
+import kotlinx.coroutines.launch
 
 @Composable
 fun CatalogHomeScreen() {
     var products by remember { mutableStateOf<List<ApiProduct>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
+    var isInitialLoading by remember { mutableStateOf(true) }
+    var skip by remember { mutableStateOf(0) }
+    var canLoadMore by remember { mutableStateOf(true) }
+    
+    val limit = 10
+    val coroutineScope = rememberCoroutineScope()
 
+    // Helper function to load items sequentially
+    fun loadNextPage() {
+        if (isLoading || !canLoadMore) return
+        isLoading = true
+        coroutineScope.launch {
+            val newItems = DummyJsonService.fetchProducts(limit = limit, skip = skip)
+            if (newItems.isEmpty() || newItems.size < limit) {
+                canLoadMore = false
+            }
+            products = products + newItems
+            skip += limit
+            isLoading = false
+            isInitialLoading = false
+        }
+    }
+
+    // Trigger initial data load
     LaunchedEffect(Unit) {
-        products = DummyJsonService.fetchProducts()
-        isLoading = false
+        loadNextPage()
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFE8F5E9)) // Cheerful soft light green background
+            .background(Color(0xFFE8F5E9))
     ) {
         Column(
             modifier = Modifier
@@ -45,16 +68,16 @@ fun CatalogHomeScreen() {
         ) {
             Spacer(modifier = Modifier.height(64.dp))
             
-            // App Title placed inside a pretty 3D/Floating styled Card at the top left
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFC8E6C9) // Slightly darker soft light green box for a pretty contrast
+                    containerColor = Color(0xFFC8E6C9)
                 ),
                 elevation = CardDefaults.cardElevation(
-                    defaultElevation = 8.dp // Gives the box a gorgeous floating 3D depth shadow effect!
+                    defaultElevation = 8.dp
                 )
             ) {
                 Column(
@@ -87,17 +110,39 @@ fun CatalogHomeScreen() {
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            if (isLoading) {
+            if (isInitialLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF4CAF50))
                 }
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 32.dp),
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(products) { product ->
+                    itemsIndexed(products) { index, product ->
                         ProductItemCard(product)
+                        
+
+                        if (index == products.lastIndex && !isLoading && canLoadMore) {
+                            SideEffect {
+                                loadNextPage()
+                            }
+                        }
+                    }
+                    
+                    // Loading indicator displayed at the bottom when fetching more rows
+                    if (isLoading && !isInitialLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF4CAF50))
+                            }
+                        }
                     }
                 }
             }
@@ -193,4 +238,3 @@ fun ProductItemCard(product: ApiProduct) {
         }
     }
 }
-
