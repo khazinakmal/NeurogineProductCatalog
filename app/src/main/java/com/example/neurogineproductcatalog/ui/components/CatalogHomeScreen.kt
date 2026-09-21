@@ -23,6 +23,14 @@ import coil.compose.AsyncImage
 import com.example.neurogineproductcatalog.data.ApiProduct
 import com.example.neurogineproductcatalog.data.DummyJsonService
 import kotlinx.coroutines.launch
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.window.Dialog
+import com.example.neurogineproductcatalog.data.Review
 
 @Composable
 fun CatalogHomeScreen() {
@@ -152,89 +160,251 @@ fun CatalogHomeScreen() {
 
 @Composable
 fun ProductItemCard(product: ApiProduct) {
+    var expanded by remember { mutableStateOf(false) }
+    var showReviews by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .clickable { expanded = !expanded },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
         ) {
-            // Loading the actual product image from the API using Coil
-            AsyncImage(
-                model = product.thumbnail,
-                contentDescription = product.title,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFDCEDC8)),
-                contentScale = ContentScale.Crop
-            )
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = product.title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                // Loading the actual product image from the API using Coil
+                AsyncImage(
+                    model = product.thumbnail,
+                    contentDescription = product.title,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFDCEDC8)),
+                    contentScale = ContentScale.Crop
                 )
                 
-                Text(
-                    text = product.category.replaceFirstChar { it.uppercase() },
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Spacer(modifier = Modifier.width(16.dp))
                 
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = product.description,
-                    fontSize = 13.sp,
-                    color = Color.DarkGray,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 18.sp
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "RM ${product.price}",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF2E7D32) // Dark green for price
+                        text = product.title,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⭐", fontSize = 14.sp)
-                        Text(
-                            text = product.rating.toString(),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            modifier = Modifier.padding(start = 2.dp)
-                        )
-                    }
+                    Text(
+                        text = product.category.replaceFirstChar { it.uppercase() },
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = product.description,
+                        fontSize = 13.sp,
+                        color = Color.DarkGray,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 18.sp
+                    )
+                }
+
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Show less" else "Show more",
+                    tint = Color.Gray
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "RM ${product.price}",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF2E7D32) // Dark green for price
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "⭐", fontSize = 14.sp)
+                    Text(
+                        text = product.rating.toString(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ProductDetailRow(label = "Discount", value = "${product.discountPercentage}%")
+                ProductDetailRow(label = "Stock", value = "${product.stock} items")
+                ProductDetailRow(label = "SKU", value = product.sku)
+                ProductDetailRow(label = "Warranty", value = product.warrantyInformation)
+                ProductDetailRow(label = "Shipping", value = product.shippingInformation)
+                ProductDetailRow(label = "Availability", value = product.availabilityStatus)
+                ProductDetailRow(label = "Min Order", value = "${product.minimumOrderQuantity} units")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { showReviews = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text(text = "Reviews", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
+    }
+
+    if (showReviews) {
+        ReviewsDialog(
+            reviews = product.reviews,
+            onDismiss = { showReviews = false }
+        )
+    }
+}
+
+@Composable
+fun ReviewsDialog(reviews: List<Review>, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Customer Reviews",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (reviews.isEmpty()) {
+                    Text(
+                        text = "No reviews yet.",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(reviews.size) { index ->
+                            val review = reviews[index]
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF1F8E9), RoundedCornerShape(12.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = review.reviewerName,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFB300),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = review.rating.toString(),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(start = 2.dp)
+                                        )
+                                    }
+                                }
+                                
+                                Text(
+                                    text = review.comment,
+                                    fontSize = 13.sp,
+                                    color = Color.DarkGray,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                                
+                                Text(
+                                    text = review.date.split("T")[0],
+                                    fontSize = 11.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(text = "Close", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+        Text(text = value, fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
     }
 }

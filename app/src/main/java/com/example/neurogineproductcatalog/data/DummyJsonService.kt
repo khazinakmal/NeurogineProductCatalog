@@ -8,6 +8,14 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class Review(
+    val rating: Int,
+    val comment: String,
+    val date: String,
+    val reviewerName: String,
+    val reviewerEmail: String
+)
+
 data class ApiProduct(
     val id: Int,
     val title: String,
@@ -15,7 +23,15 @@ data class ApiProduct(
     val price: Double,
     val category: String,
     val thumbnail: String,
-    val rating: Double
+    val rating: Double,
+    val discountPercentage: Double,
+    val stock: Int,
+    val sku: String,
+    val warrantyInformation: String,
+    val shippingInformation: String,
+    val availabilityStatus: String,
+    val minimumOrderQuantity: Int,
+    val reviews: List<Review> = emptyList()
 )
 
 object DummyJsonService {
@@ -46,6 +62,23 @@ object DummyJsonService {
                 
                 for (i in 0 until jsonArray.length()) {
                     val p = jsonArray.getJSONObject(i)
+                    val reviewsArray = p.optJSONArray("reviews")
+                    val reviews = mutableListOf<Review>()
+                    if (reviewsArray != null) {
+                        for (j in 0 until reviewsArray.length()) {
+                            val r = reviewsArray.getJSONObject(j)
+                            reviews.add(
+                                Review(
+                                    rating = r.getInt("rating"),
+                                    comment = r.getString("comment"),
+                                    date = r.getString("date"),
+                                    reviewerName = r.getString("reviewerName"),
+                                    reviewerEmail = r.getString("reviewerEmail")
+                                )
+                            )
+                        }
+                    }
+
                     productsList.add(
                         ApiProduct(
                             id = p.getInt("id"),
@@ -54,7 +87,15 @@ object DummyJsonService {
                             price = p.getDouble("price"),
                             category = p.getString("category"),
                             thumbnail = p.optString("thumbnail", ""),
-                            rating = p.optDouble("rating", 0.0)
+                            rating = p.optDouble("rating", 0.0),
+                            discountPercentage = p.optDouble("discountPercentage", 0.0),
+                            stock = p.optInt("stock", 0),
+                            sku = p.optString("sku", "N/A"),
+                            warrantyInformation = p.optString("warrantyInformation", "N/A"),
+                            shippingInformation = p.optString("shippingInformation", "N/A"),
+                            availabilityStatus = p.optString("availabilityStatus", "Unknown"),
+                            minimumOrderQuantity = p.optInt("minimumOrderQuantity", 1),
+                            reviews = reviews
                         )
                     )
                 }
