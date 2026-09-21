@@ -36,8 +36,12 @@ data class ApiProduct(
 
 object DummyJsonService {
     
-    suspend fun fetchProducts(limit: Int = 20, skip: Int = 0): List<ApiProduct> = withContext(Dispatchers.IO) {
-        val urlString = "https://dummyjson.com/products?limit=$limit&skip=$skip"
+    suspend fun fetchProducts(limit: Int = 20, skip: Int = 0, query: String = ""): List<ApiProduct> = withContext(Dispatchers.IO) {
+        val urlString = if (query.isEmpty()) {
+            "https://dummyjson.com/products?limit=$limit&skip=$skip"
+        } else {
+            "https://dummyjson.com/products/search?q=$query&limit=$limit&skip=$skip"
+        }
         val productsList = mutableListOf<ApiProduct>()
         
         try {

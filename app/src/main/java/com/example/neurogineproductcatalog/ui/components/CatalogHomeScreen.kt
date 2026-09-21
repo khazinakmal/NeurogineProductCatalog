@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.window.Dialog
 import com.example.neurogineproductcatalog.data.Review
 
@@ -39,29 +41,46 @@ fun CatalogHomeScreen() {
     var isInitialLoading by remember { mutableStateOf(true) }
     var skip by remember { mutableStateOf(0) }
     var canLoadMore by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
     
     val limit = 10
     val coroutineScope = rememberCoroutineScope()
 
     // Helper function to load items sequentially
-    fun loadNextPage() {
-        if (isLoading || !canLoadMore) return
+    fun loadNextPage(reset: Boolean = false) {
+        if (isLoading) return
+        if (!reset && !canLoadMore) return
+        
         isLoading = true
+        if (reset) {
+            skip = 0
+            canLoadMore = true
+            isInitialLoading = true
+        }
+
         coroutineScope.launch {
-            val newItems = DummyJsonService.fetchProducts(limit = limit, skip = skip)
+            val currentSkip = if (reset) 0 else skip
+            val newItems = DummyJsonService.fetchProducts(limit = limit, skip = currentSkip, query = searchQuery)
+            
+            if (reset) {
+                products = newItems
+            } else {
+                products = products + newItems
+            }
+
             if (newItems.isEmpty() || newItems.size < limit) {
                 canLoadMore = false
             }
-            products = products + newItems
-            skip += limit
+            
+            skip = (if (reset) 0 else skip) + limit
             isLoading = false
             isInitialLoading = false
         }
     }
 
-    // Trigger initial data load
-    LaunchedEffect(Unit) {
-        loadNextPage()
+    // Trigger initial data load or search
+    LaunchedEffect(searchQuery) {
+        loadNextPage(reset = true)
     }
 
     Box(
@@ -116,6 +135,33 @@ fun CatalogHomeScreen() {
                 }
             }
             
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                placeholder = { Text("Search products...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF4CAF50),
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                ),
+                singleLine = true
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
             
             if (isInitialLoading) {
@@ -245,7 +291,7 @@ fun ProductItemCard(product: ApiProduct) {
                     text = "RM ${product.price}",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF2E7D32) // Dark green for price
+                    color = Color(0xFF2E7D32)
                 )
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
