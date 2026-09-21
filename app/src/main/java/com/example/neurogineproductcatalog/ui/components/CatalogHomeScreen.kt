@@ -28,6 +28,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Clear
@@ -35,7 +37,10 @@ import androidx.compose.ui.window.Dialog
 import com.example.neurogineproductcatalog.data.Review
 
 @Composable
-fun CatalogHomeScreen() {
+fun CatalogHomeScreen(
+    wishlist: List<ApiProduct>,
+    onToggleWishlist: (ApiProduct) -> Unit
+) {
     var products by remember { mutableStateOf<List<ApiProduct>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var isInitialLoading by remember { mutableStateOf(true) }
@@ -175,7 +180,12 @@ fun CatalogHomeScreen() {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(products) { index, product ->
-                        ProductItemCard(product)
+                        val isWishlisted = wishlist.any { it.id == product.id }
+                        ProductItemCard(
+                            product = product,
+                            isWishlisted = isWishlisted,
+                            onToggleWishlist = { onToggleWishlist(product) }
+                        )
                         
 
                         if (index == products.lastIndex && !isLoading && canLoadMore) {
@@ -205,7 +215,11 @@ fun CatalogHomeScreen() {
 }
 
 @Composable
-fun ProductItemCard(product: ApiProduct) {
+fun ProductItemCard(
+    product: ApiProduct,
+    isWishlisted: Boolean,
+    onToggleWishlist: () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     var showReviews by remember { mutableStateOf(false) }
 
@@ -245,14 +259,31 @@ fun ProductItemCard(product: ApiProduct) {
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = product.title,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = product.title,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        IconButton(
+                            onClick = { onToggleWishlist() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isWishlisted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Wishlist",
+                                tint = if (isWishlisted) Color.Red else Color.Gray
+                            )
+                        }
+                    }
                     
                     Text(
                         text = product.category.replaceFirstChar { it.uppercase() },
