@@ -57,3 +57,8 @@ UI → ViewModel → Repository → API
 - feat: implement product detail
 - feat: implement search bar
 - feat: implement addition features
+
+**AI USAGE IN THIS DEVELOPMENT**
+- I had used AI in this development process but just in few process. I used it when i want to
+  try connects the DummyJSON data that Neurogine give to me for this mini catalog app. I also use it
+  to fix a minor error that I had tried to solve it first but I cannot fix it at that moment.
